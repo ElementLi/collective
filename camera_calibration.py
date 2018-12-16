@@ -25,6 +25,10 @@ args = parser.parse_args()
 
 cam = cv2.VideoCapture();
 
+cam.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+cam.set(cv2.CAP_PROP_FPS, 25)
+
 # define display window names
 
 windowName = "Camera Input"; # window name
