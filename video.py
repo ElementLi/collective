@@ -30,21 +30,30 @@ fps = FPS().start()
 fourcc = cv2.VideoWriter_fourcc(*'MJPG')
 out = cv2.VideoWriter('output.avi', fourcc, 25.0, (1280, 720))
 
-K = np.load('camera_config/k' + str(args.camera_to_use) + '_ok.npy')
-D = np.load('camera_config/d' + str(args.camera_to_use) + '_ok.npy')
+try:
+    K = np.load('camera_config/k' + str(args.camera_to_use) + '.npy')
+except:
+    print('No undistort matrix found.')
+
+try:
+    D = np.load('camera_config/d' + str(args.camera_to_use) + '.npy')
+except:
+    print('No undistort distance found.')
 
 while cam.isOpened():
     cam.grab()
     ret, frame = cam.read()
     if ret:
-        # frame = imutils.resize(frame, width=800)
-        # cv2.imshow('frame', frame)
-
-        undistort = cv2.undistort(frame, K, D)
-        # write the undistort frame
-        out.write(undistort)
-        undistort = imutils.resize(undistort, width=800)
-        cv2.imshow('undistort', undistort)
+        if 'K' not in vars() or 'K' not in globals() or 'D' not in vars() or 'D' not in globals():
+            out.write(frame)
+            frame = imutils.resize(frame, width=800)
+            cv2.imshow('frame', frame)
+        else:
+            undistort = cv2.undistort(frame, K, D)
+            # write the undistort frame
+            out.write(undistort)
+            undistort = imutils.resize(undistort, width=800)
+            cv2.imshow('undistort', undistort)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
         fps.update()
