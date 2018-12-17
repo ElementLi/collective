@@ -6,6 +6,9 @@ import cv2
 import argparse
 import sys
 import numpy as np
+import time
+import imutils
+from imutils.video import FPS
 
 #####################################################################
 
@@ -22,16 +25,20 @@ args = parser.parse_args()
 
 #  define video capture object
 
-cam = cv2.VideoCapture(1)
+cam = cv2.VideoCapture()
 
-cam.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-cam.set(cv2.CAP_PROP_FPS, 25)
+print('Camera opened: ', cam.isOpened())
+
+cam.set(3, 1280)
+cam.set(4, 720)
+time.sleep(2)
+cam.set(25, -8.0)
+fps = FPS().start()
 
 # define display window names
 
-windowName = 'Camera Input' # window name
-windowNameU = 'Undistored (calibrated) Camera' # window name
+windowName = 'Camera Input'  # window name
+windowNameU = 'Undistored (calibrated) Camera'  # window name
 
 #####################################################################
 
@@ -48,13 +55,13 @@ square_size_in_mm = 20
 
 # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
 
-objp = np.zeros((patternX*patternY,3), np.float32)
-objp[:,:2] = np.mgrid[0:patternX,0:patternY].T.reshape(-1,2)
+objp = np.zeros((patternX*patternY, 3), np.float32)
+objp[:, :2] = np.mgrid[0:patternX, 0:patternY].T.reshape(-1, 2)
 objp = objp * square_size_in_mm
 
 # create arrays to store object points and image points from all the images.
-objpoints = [] # 3d point in real world space
-imgpoints = [] # 2d points in image plane.
+objpoints = []  # 3d point in real world space
+imgpoints = []  # 2d points in image plane.
 
 #####################################################################
 
@@ -78,9 +85,11 @@ if cam.open(args.camera_to_use):
         cam.grab()
         ret, frame = cam.retrieve()
 
+        frame = imutils.resize(frame, width=1200)
+
         # convert to grayscale
 
-        gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
         # Find the chess board corners in the image
         # (change flags to perhaps improve detection ?)
@@ -104,12 +113,12 @@ if cam.open(args.camera_to_use):
 
             # Draw and display the corners
 
-            drawboard = cv2.drawChessboardCorners(frame, (patternX,patternY), corners_sp,ret)
+            drawboard = cv2.drawChessboardCorners(frame, (patternX, patternY), corners_sp, ret)
 
             text = 'detected: ' + str(chessboard_pattern_detections)
             cv2.putText(drawboard, text, (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, 8)
 
-            cv2.imshow(windowName,drawboard)
+            cv2.imshow(windowName, drawboard)
         else:
             text = 'detected: ' + str(chessboard_pattern_detections)
             cv2.putText(frame, text, (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, 8)
@@ -121,7 +130,7 @@ if cam.open(args.camera_to_use):
         key = cv2.waitKey(1000) & 0xFF  # wait 1s. between frames
         if key == ord('c'):
             do_calibration = True
-
+        fps.update()
 else:
     print('Cannot open connected camera.')
 
@@ -131,7 +140,7 @@ else:
 
 print('START - intrinsic calibration ...')
 
-ret, K, D, rvecs, tvecs= cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None);
+ret, K, D, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
 
 print('FINISHED - intrinsic calibration')
 print()
@@ -177,8 +186,8 @@ while keep_processing:
     key = cv2.waitKey(40) & 0xFF # wait 40ms (i.e. 1000ms / 25 fps = 40 ms)
 
     if key == ord('x'):
-        np.save('camera_config/k.npy', K)
-        np.save('camera_config/d.npy', D)
+        np.save('camera_config/k' + args.camera_to_use + '.npy', K)
+        np.save('camera_config/d' + args.camera_to_use + '.npy', D)
         keep_processing = False
 
 #####################################################################
