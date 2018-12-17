@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import sys
 import numpy as np
 import cv2
 import time
@@ -12,26 +13,38 @@ import argparse
 # ap.add_argument('-v', '--video', required=True,
 #                 help='path to input video file')
 # args = vars(ap.parse_args())
+parser = argparse.ArgumentParser(
+    description='Perform ' + sys.argv[0] + ' example operation on incoming camera/video image')
+parser.add_argument('-c', '--camera_to_use', type=int, help='specify camera to use', default=0)
+args = parser.parse_args()
 
-# cap = cv2.VideoCapture(args['video'])
-cap = cv2.VideoCapture(1)
-cap.set(3, 1280)
-cap.set(4, 720)
+# cam = cv2.VideoCapture(args['video'])
+cam = cv2.VideoCapture(args.camera_to_use)
+cam.set(3, 1280)
+cam.set(4, 720)
 time.sleep(2)
-cap.set(60, -8.0)
+cam.set(60, -8.0)
 fps = FPS().start()
 
 # Define the codec and create VideoWriter object
 fourcc = cv2.VideoWriter_fourcc(*'MJPG')
 out = cv2.VideoWriter('output.avi', fourcc, 25.0, (1280, 720))
 
-while cap.isOpened():
-    ret, frame = cap.read()
+K = np.load('camera_config/k' + str(args.camera_to_use) + '_ok.npy')
+D = np.load('camera_config/d' + str(args.camera_to_use) + '_ok.npy')
+
+while cam.isOpened():
+    cam.grab()
+    ret, frame = cam.read()
     if ret:
-        # write the frame
-        out.write(frame)
-        frame = imutils.resize(frame, width=500)
-        cv2.imshow('frame',frame)
+        # frame = imutils.resize(frame, width=800)
+        # cv2.imshow('frame', frame)
+
+        undistort = cv2.undistort(frame, K, D)
+        # write the undistort frame
+        out.write(undistort)
+        undistort = imutils.resize(undistort, width=800)
+        cv2.imshow('undistort', undistort)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
         fps.update()
@@ -39,6 +52,6 @@ while cap.isOpened():
         break
 
 # Release everything if job is finished
-cap.release()
+cam.release()
 out.release()
 cv2.destroyAllWindows()

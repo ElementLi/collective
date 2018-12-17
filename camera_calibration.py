@@ -25,20 +25,19 @@ args = parser.parse_args()
 
 #  define video capture object
 
-cam = cv2.VideoCapture()
-
-print('Camera opened: ', cam.isOpened())
+cam = cv2.VideoCapture(args.camera_to_use)
 
 cam.set(3, 1280)
 cam.set(4, 720)
 time.sleep(2)
-cam.set(25, -8.0)
+cam.set(60, -8.0)
 fps = FPS().start()
 
 # define display window names
 
 windowName = 'Camera Input'  # window name
 windowNameU = 'Undistored (calibrated) Camera'  # window name
+windowNameO = 'Original'  # window name
 
 #####################################################################
 
@@ -49,8 +48,8 @@ termination_criteria_subpix = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITE
 
 # set up a set of real-world "object points" for the chessboard pattern
 
-patternX = 7
-patternY = 10
+patternX = 6
+patternY = 9
 square_size_in_mm = 20
 
 # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
@@ -76,16 +75,16 @@ print('press c : to continue to calibration')
 
 # open connected camera
 
-if cam.open(args.camera_to_use):
+if cam.isOpened():
 
     while not do_calibration:
 
         # grab frames from camera (to ensure best time sync.)
 
         cam.grab()
-        ret, frame = cam.retrieve()
+        ret, frame = cam.read()
 
-        frame = imutils.resize(frame, width=1200)
+        # frame = imutils.resize(frame, width=1200)
 
         # convert to grayscale
 
@@ -118,12 +117,14 @@ if cam.open(args.camera_to_use):
             text = 'detected: ' + str(chessboard_pattern_detections)
             cv2.putText(drawboard, text, (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, 8)
 
-            cv2.imshow(windowName, drawboard)
+            imD = imutils.resize(drawboard, width=1280)
+            cv2.imshow(windowName, imD)
         else:
             text = 'detected: ' + str(chessboard_pattern_detections)
             cv2.putText(frame, text, (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, 8)
 
-            cv2.imshow(windowName, frame)
+            imS = imutils.resize(frame, width=1280)
+            cv2.imshow(windowName, imS)
 
         # start the event loop
 
@@ -170,7 +171,7 @@ while keep_processing:
     # grab frames from camera (to ensure best time sync.)
 
     cam.grab()
-    ret, frame = cam.retrieve()
+    ret, frame = cam.read()
 
     # undistort image using camera matrix K and distortion coefficients D
 
@@ -186,8 +187,8 @@ while keep_processing:
     key = cv2.waitKey(40) & 0xFF # wait 40ms (i.e. 1000ms / 25 fps = 40 ms)
 
     if key == ord('x'):
-        np.save('camera_config/k' + args.camera_to_use + '.npy', K)
-        np.save('camera_config/d' + args.camera_to_use + '.npy', D)
+        np.save('camera_config/k' + str(args.camera_to_use) + '.npy', K)
+        np.save('camera_config/d' + str(args.camera_to_use) + '.npy', D)
         keep_processing = False
 
 #####################################################################
